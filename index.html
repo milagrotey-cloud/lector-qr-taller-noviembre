@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lector QR - Taller de Arte</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f5ef;
+      color: #333;
+      text-align: center;
+      padding: 24px 16px;
+    }
+    h1 { font-size: 25px; }
+    #reader {
+      max-width: 420px;
+      margin: 24px auto;
+    }
+    #resultado {
+      max-width: 420px;
+      margin: 20px auto;
+      padding: 18px;
+      border-radius: 12px;
+      background: white;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+    .instruccion { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>🎨 Lector QR – Taller de Arte</h1>
+  <p class="instruccion">Escaneá el código QR de la participante.</p>
+
+  <div id="reader"></div>
+  <div id="resultado">Esperando un código QR...</div>
+
+  <script>
+    const URL_APPS_SCRIPT =
+      "https://script.google.com/macros/s/AKfycbzZpVAr_EF-9h74dnx3Mrw8zG3Qm3H0aYOlNs0Po_BC-7ElUPVfrokHmklFJISICZxOfg/exec";
+
+    let procesando = false;
+    const resultado = document.getElementById("resultado");
+
+    function consultarToken(token) {
+      resultado.textContent = "Verificando entrada...";
+
+      const callback = "respuestaQR";
+      window[callback] = function(data) {
+        resultado.textContent = data.mensaje +
+          (data.nombre ? " Participante: " + data.nombre : "");
+        resultado.style.color = data.ok ? "green" : "red";
+        procesando = false;
+        delete window[callback];
+      };
+
+      const script = document.createElement("script");
+      script.src = URL_APPS_SCRIPT +
+        "?action=validar&token=" + encodeURIComponent(token) +
+        "&callback=" + callback;
+
+      script.onerror = function() {
+        resultado.textContent = "No se pudo conectar. Revisá internet e intentá nuevamente.";
+        resultado.style.color = "red";
+        procesando = false;
+        delete window[callback];
+        script.remove();
+      };
+
+      script.onload = function() {
+        script.remove();
+      };
+
+      document.body.appendChild(script);
+    }
+
+    function alEscanear(texto) {
+      if (procesando) return;
+      procesando = true;
+      lector.pause(true);
+      consultarToken(texto);
+    }
+
+    const lector = new Html5Qrcode("reader");
+
+    lector.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      alEscanear
+    ).catch(error => {
+      resultado.textContent = "No se pudo abrir la cámara. Revisá los permisos del navegador.";
+      console.error(error);
+    });
+  </script>
+</body>
+</html>
